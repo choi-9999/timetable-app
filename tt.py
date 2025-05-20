@@ -1,9 +1,24 @@
 import streamlit as st
+import re
+from hangul_romanize import Transliter
+from hangul_romanize.rule import academic
 import json
 from datetime import datetime
 import base64
 from collections import defaultdict
 from datetime import timedelta
+
+trans = Transliter(academic)
+
+def to_romanized_filename(name):
+    try:
+        romanized = trans.translit(name)
+        romanized = re.sub(r'[^a-zA-Z0-9_]', '', romanized.lower())
+        if not romanized:
+            romanized = "student"
+        return romanized
+    except:
+        return "student"
 
 # 로고 base64
 def image_to_base64(path):
@@ -241,22 +256,29 @@ if student_name:
     st.sidebar.markdown("### 💾 시간표 저장")
     st.sidebar.download_button(
         label="📥 내 컴퓨터에 저장",
-        data=json.dumps({"student": student_name,"time_blocks": st.session_state["time_blocks"],"timetable": st.session_state["timetable"],"num_rows": st.session_state["num_rows"]}, ensure_ascii=False),
-        file_name=f"timetable_{student_name}.json",
+        data=json.dumps({
+            "student": student_name,
+            "time_blocks": st.session_state["time_blocks"],
+            "timetable": st.session_state["timetable"],
+            "num_rows": st.session_state["num_rows"]
+        }, ensure_ascii=False),
+        file_name=f"timetable_{to_romanized_filename(student_name)}.json",
         mime="application/json"
     )
+
     st.sidebar.markdown("### 📤 시간표 불러오기")
-    uploaded_file = st.sidebar.file_uploader(f"timetable_{student_name}.json 파일을 선택하세요", type="json")
+    uploaded_file = st.sidebar.file_uploader("시간표 JSON 파일을 선택하세요 (파일명은 반드시 영문으로 저장)", type="json")
 
     if uploaded_file:
-        filename = uploaded_file.name
-        if not filename.isascii():
+        # 🔑 파일 이름 검사 먼저
+        if not uploaded_file.name.isascii():
             st.sidebar.warning("⚠️ 파일 이름을 영문으로 바꿔서 다시 업로드해 주세요.")
         else:
             try:
-                raw = uploaded_file.read().decode("utf-8")  # ✅ 핵심
+                # 이름이 안전할 때만 읽기 시도
+                raw = uploaded_file.read().decode("utf-8")
                 loaded = json.loads(raw)
-    
+
                 # 값 반영
                 st.session_state["time_blocks"] = loaded.get("time_blocks", default_times.copy())
                 st.session_state["timetable"] = loaded.get("timetable", {})
@@ -264,7 +286,6 @@ if student_name:
                 st.sidebar.success(f"✅ '{student_name}'의 시간표 불러오기 완료!")
             except Exception as e:
                 st.sidebar.error(f"❌ JSON 파일이 유효하지 않습니다: {e}")
-
 # 시간 계산
 left_col, right_col = st.columns([3, 1])
 with left_col:
