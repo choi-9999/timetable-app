@@ -247,15 +247,19 @@ if student_name:
     )
     st.sidebar.markdown("### 📤 시간표 불러오기")
     uploaded_file = st.sidebar.file_uploader(f"timetable_{student_name}.json 파일을 선택하세요", type="json")
+
     if uploaded_file:
         try:
-            loaded = json.load(uploaded_file)
+            raw = uploaded_file.read().decode("utf-8")  # ✅ 핵심: decode 먼저
+            loaded = json.loads(raw)                    # ✅ 안전한 JSON 파싱
+
+            # 값 반영
             st.session_state["time_blocks"] = loaded.get("time_blocks", default_times.copy())
             st.session_state["timetable"] = loaded.get("timetable", {})
             st.session_state["num_rows"] = loaded.get("num_rows", len(st.session_state["time_blocks"]))
             st.sidebar.success(f"✅ '{student_name}'의 시간표 불러오기 완료!")
-        except:
-            st.sidebar.error("❌ JSON 파일이 유효하지 않습니다.")
+        except Exception as e:
+            st.sidebar.error(f"❌ JSON 파일이 유효하지 않습니다: {e}")
 
 # 시간 계산
 left_col, right_col = st.columns([3, 1])
