@@ -285,7 +285,7 @@ if student_name:
                 st.session_state["time_blocks"] = loaded.get("time_blocks", default_times.copy())
                 st.session_state["timetable"] = loaded.get("timetable", {})
                 st.session_state["num_rows"] = loaded.get("num_rows", len(st.session_state["time_blocks"]))
-                st.sidebar.success(f"✅ '{student_name}'의 시간표 불러오기 완료!")
+                st.sidebar.success(f"✅ 시간표 불러오기 완료!")
                 st.sidebar.markdown(
                     """
                     <div style='
