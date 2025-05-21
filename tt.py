@@ -286,6 +286,21 @@ if student_name:
                 st.session_state["timetable"] = loaded.get("timetable", {})
                 st.session_state["num_rows"] = loaded.get("num_rows", len(st.session_state["time_blocks"]))
                 st.sidebar.success(f"✅ '{student_name}'의 시간표 불러오기 완료!")
+                st.sidebar.markdown(
+                    """
+                    <div style='
+                        background-color: #fef3c7;
+                        padding: 10px;
+                        border-radius: 8px;
+                        color: #92400e;
+                        font-size: 0.85rem;
+                        margin-top: 6px;
+                    '>
+                    ⚠️ 시간표를 수정하려면 <b style='color: #b45309;'>파일 옆 ❌ 버튼</b>을 먼저 눌러주세요.
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
             except Exception as e:
                 st.sidebar.error(f"❌ JSON 파일이 유효하지 않습니다: {e}")
 # 시간 계산
