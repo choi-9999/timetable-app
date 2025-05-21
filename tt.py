@@ -7,6 +7,8 @@ from datetime import datetime
 import base64
 from collections import defaultdict
 from datetime import timedelta
+import pandas as pd
+import altair as alt
 
 trans = Transliter(academic)
 
@@ -34,7 +36,7 @@ st.set_page_config(layout="wide")
 st.markdown("""
 <style>
     body {
-        background-color: #f5f6fa;
+        background-color: #fffffff;
         font-family: 'Segoe UI', 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
         color: #111827;
     }
@@ -166,7 +168,7 @@ st.markdown("""
 st.markdown(f"""
 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
     <img src="data:image/png;base64,{logo_base64}" alt="logo" style="height: 40px;">
-    <h1 style="margin: 0; font-size: 32px;">나만의 시간표 만들기</h1>
+    <h1 style="margin: 0; font-size: 32px;">나만의 시간표</h1>
 </div>
 """, unsafe_allow_html=True)
 
@@ -366,6 +368,7 @@ def 정규화(subject):
 
 stat_dankwa, stat_ingang, stat_silmo = defaultdict(int), defaultdict(int), defaultdict(int)
 순공_by_day = {d: 0 for d in days}
+순공_by_subject = defaultdict(int)
 
 for row_idx in range(st.session_state["num_rows"]):
     try:
@@ -391,6 +394,7 @@ for row_idx in range(st.session_state["num_rows"]):
             stat_silmo[subj] += duration
         else:
             순공_by_day[day] += duration
+            순공_by_subject[subj] += duration
 
 순공_total = sum(순공_by_day.values())
 
@@ -489,3 +493,85 @@ with right_col:
                     </p>
                 </div>
             """, unsafe_allow_html=True)
+
+st.markdown("<div style='margin-top: 60px;'></div>", unsafe_allow_html=True)
+
+# 📊 공통 데이터 구성
+total_data = {
+    "단과": sum(stat_dankwa.values()),
+    "인강": sum(stat_ingang.values()),
+    "실모": sum(stat_silmo.values()),
+    "순공": 순공_total
+}
+df_pie = pd.DataFrame({"유형": total_data.keys(), "시간(분)": total_data.values()})
+
+df_day = pd.DataFrame({
+    "요일": list(순공_by_day.keys()),
+    "시간(분)": list(순공_by_day.values())
+})
+
+subject_set = set(stat_dankwa.keys()) | set(stat_ingang.keys()) | set(stat_silmo.keys())
+data_subject = []
+for subj in subject_set:
+    data_subject.append({"과목": subj, "유형": "단과", "시간": stat_dankwa.get(subj, 0)})
+    data_subject.append({"과목": subj, "유형": "인강", "시간": stat_ingang.get(subj, 0)})
+    data_subject.append({"과목": subj, "유형": "실모", "시간": stat_silmo.get(subj, 0)})
+for subj, time in 순공_by_subject.items():
+    data_subject.append({"과목": subj, "유형": "순공", "시간": time})
+df_subj = pd.DataFrame(data_subject)
+
+# 🎨 컬러 지정
+color_map = {
+    "단과": "#f87171",  # 빨간계열
+    "인강": "#60a5fa",  # 파란계열
+    "실모": "#34d399",  # 초록계열
+    "순공": "#fbbf24"   # 노란계열
+}
+요일색 = {
+    "월": "#e0f2fe", "화": "#bae6fd", "수": "#7dd3fc", "목": "#38bdf8",
+    "금": "#0ea5e9", "토": "#0284c7", "일": "#0369a1"
+}
+
+# 🔳 레이아웃 나누기
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("### 🧩 학습 유형별 비율")
+    pie_chart = alt.Chart(df_pie).mark_arc(innerRadius=50).encode(
+        theta="시간(분):Q",
+        color=alt.Color(
+            "유형:N",
+            scale=alt.Scale(domain=list(color_map.keys()), range=list(color_map.values())),
+            legend=alt.Legend(orient="bottom")
+        ),
+        tooltip=["유형:N", "시간(분):Q"]
+    ).properties(width=260, height=260)
+    st.altair_chart(pie_chart, use_container_width=True)
+
+with col2:
+    st.markdown("### 📅 요일별 순공 시간")
+    bar_chart_day = alt.Chart(df_day).mark_bar().encode(
+        x=alt.X("요일:N", sort=days),
+        y="시간(분):Q",
+        color=alt.Color(
+            "요일:N",
+            scale=alt.Scale(domain=list(요일색.keys()), range=list(요일색.values())),
+            legend=alt.Legend(orient="bottom")
+        ),
+        tooltip=["요일:N", "시간(분):Q"]
+    ).properties(height=260)
+    st.altair_chart(bar_chart_day, use_container_width=True)
+
+with col3:
+    st.markdown("### 📚 과목별 누적 시간")
+    bar_chart_subj = alt.Chart(df_subj).mark_bar().encode(
+        x="과목:N",
+        y="시간:Q",
+        color=alt.Color(
+            "유형:N",
+            scale=alt.Scale(domain=list(color_map.keys()), range=list(color_map.values())),
+            legend=alt.Legend(orient="bottom")
+        ),
+        tooltip=["과목:N", "유형:N", "시간:Q"]
+    ).properties(height=260)
+    st.altair_chart(bar_chart_subj, use_container_width=True)
