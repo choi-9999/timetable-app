@@ -174,7 +174,7 @@ st.markdown(f"""
 
 # 요일 및 과목
 days = ["월", "화", "수", "목", "금", "토", "일"]
-subject_options = [ "🟥 국어", "🟧 수학", "🟨 영어", "🟩 물리학","🟩 화학","🟩 생명과학","🟩 지구과학","🟦 생윤/윤사","🟦 사문/정법","🟦 한지/세지","🟦 동사/세사",""]
+subject_options = [ "🟥 국어", "🟧 수학", "🟨 영어", "🟩 물리학","🟩 화학","🟩 생명과학","🟩 지구과학","🟦 생활과윤리","🟦 윤리와사상","🟦 사회문화","🟦 한국지리","🟦 세계지리","🟦 동아시아사","🟦 세계사","🟦 정치와법","🟦 경제","🟪 한국사","🟪 제2외국어",""]
 default_times = [
     "08:00 ~ 10:00", "10:00 ~ 12:00", "13:00 ~ 15:00",
     "15:00 ~ 17:00", "18:00 ~ 20:00", "20:00 ~ 22:00", "22:00 ~ 23:00"
@@ -203,6 +203,66 @@ if "timetable" not in st.session_state:
 st.sidebar.markdown("### 🧑‍💻 이름 입력")
 student_name = st.sidebar.text_input("👤 이름 (저장 및 불러오기용)", key="student_name")
 
+# 🔽 항상 표시되는 자동 슬롯 영역
+st.sidebar.markdown("---")
+st.sidebar.subheader("📥 최근 입력값 붙여넣기")
+
+# 기본 값
+subject = ""
+teacher = ""
+
+# autoslot 있을 경우 값 불러오기
+if "autoslot" in st.session_state:
+    auto = st.session_state["autoslot"]
+    subject = auto.get("subject", "")
+    teacher = auto.get("teacher", "")
+
+    st.sidebar.markdown(f"""
+    <div style="
+        background-color: #3b82f6;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 16px;
+    ">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div>{subject}</div>
+            <div style="font-size: 0.85rem; opacity: 0.9;">{teacher}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    st.sidebar.info("최근 입력값이 없습니다 😢")
+
+# 🔽 붙여넣을 위치 선택
+target_day = st.sidebar.selectbox("요일 선택", days)
+target_row = st.sidebar.selectbox("교시 선택", list(range(1, st.session_state["num_rows"] + 1)))
+
+# 🔽 저장 / 붙여넣기 버튼
+col1, col2 = st.sidebar.columns(2)
+
+with col1:
+    if st.button("💾 입력저장"):
+        st.session_state["autoslot"] = {
+            "subject": subject,
+            "teacher": teacher
+        }
+
+with col2:
+    if "autoslot" in st.session_state and st.button("📥 붙여넣기"):
+        key = f"{target_row - 1}_{target_day}"
+        st.session_state[f"{key}_subject"] = subject
+        st.session_state[f"{key}_teacher"] = teacher
+
+# 🔽 하단 구분선
+st.sidebar.markdown("---")
+        
 # 교시 추가/삭제
 st.sidebar.header("⏰ 시간대 설정")
 def add_row():
@@ -372,8 +432,13 @@ with left_col:
 
                 st.session_state["timetable"][key] = {"subject": subj, "teacher": teacher}
 
+                if subj and teacher :
+                    st.session_state["autoslot"] = {
+                        "subject": subj,
+                        "teacher": teacher,
+                    }
 # 통계
-탐구_과목 = ["물리학", "화학", "생명과학", "지구과학", "생윤/윤사", "사문/정법", "한지/세지", "동사/세사"]
+탐구_과목 = ["물리학", "화학", "생명과학", "지구과학", "생활과윤리","윤리와사상","사회문화","한국지리","세계지리","동아시아사","세계사","정치와법","경제","한국사","제2외국어"]
 def 정규화(subject):
     # 이모지 제거
     pure_subject = subject.split(" ")[-1].strip() if subject else ""
@@ -407,7 +472,7 @@ for row_idx in range(st.session_state["num_rows"]):
             stat_ingang[subj] += duration
         elif "실모" in teacher:
             stat_silmo[subj] += duration
-        else:
+        elif "자습" in teacher:
             순공_by_day[day] += duration
             순공_by_subject[subj] += duration
 
@@ -566,7 +631,11 @@ with col1:
 with col2:
     st.markdown("### 📅 요일별 순공 시간")
     bar_chart_day = alt.Chart(df_day).mark_bar().encode(
-        x=alt.X("요일:N", sort=days),
+        x=alt.X(
+            "요일:N",
+            sort=days,
+            axis=alt.Axis(labelAngle=0) 
+        ),
         y="시간(분):Q",
         color=alt.Color(
             "요일:N",
@@ -580,7 +649,10 @@ with col2:
 with col3:
     st.markdown("### 📚 과목별 누적 시간")
     bar_chart_subj = alt.Chart(df_subj).mark_bar().encode(
-        x="과목:N",
+        x=alt.X(
+            "과목:N",
+            axis=alt.Axis(labelAngle=0)  
+        ),
         y="시간:Q",
         color=alt.Color(
             "유형:N",
