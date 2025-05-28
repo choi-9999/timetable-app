@@ -199,6 +199,27 @@ if "timetable" not in st.session_state:
         for i in range(st.session_state["num_rows"]) for d in days
     }
 
+# 사용 가이드
+guide_url = "https://charm-count-364.notion.site/ETOOS247-20047bd4842d8054a139c5db10baae1d"
+
+st.sidebar.markdown(f"""
+<a href="{guide_url}" target="_blank" style="
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    background-color: #3b82f6;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration: none;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+">
+❓ 사용 가이드
+</a>
+""", unsafe_allow_html=True)
+
 # 이름 입력
 st.sidebar.markdown("### 🧑‍💻 이름 입력")
 student_name = st.sidebar.text_input("👤 이름 (저장 및 불러오기용)", key="student_name")
