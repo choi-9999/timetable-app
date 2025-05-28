@@ -291,7 +291,7 @@ with col2:
 st.sidebar.markdown("---")
         
 # 교시 추가/삭제
-st.sidebar.header("⏰ 시간대 설정")
+st.sidebar.header("🏫 교시 설정")
 def add_row():
     st.session_state["num_rows"] += 1
     st.session_state["time_blocks"].append("시간대 입력")
@@ -308,36 +308,37 @@ col1.button("➕ 교시 추가", on_click=add_row)
 col2.button("➖ 교시 제거", on_click=remove_row)
 
 # 시간대 입력
-for i in range(st.session_state["num_rows"]):
-    col1, col2 = st.sidebar.columns(2)
+with st.sidebar.expander("⏰ 시간대 설정", expanded=True):
+    for i in range(st.session_state["num_rows"]):
+        col1, col2 = st.columns(2)
 
-    # 교시별 기본 시작 시간 계산 (기준: 08:00 + 2시간 간격)
-    default_start_time = (datetime.strptime("08:00", "%H:%M") + timedelta(hours=2*i)).strftime("%H:%M")
-    default_end_time = (datetime.strptime(default_start_time, "%H:%M") + timedelta(hours=2)).strftime("%H:%M")
+        # 교시별 기본 시작 시간 계산 (기준: 08:00 + 2시간 간격)
+        default_start_time = (datetime.strptime("08:00", "%H:%M") + timedelta(hours=2*i)).strftime("%H:%M")
+        default_end_time = (datetime.strptime(default_start_time, "%H:%M") + timedelta(hours=2)).strftime("%H:%M")
 
-    # 시작 시간 입력
-    start_text = col1.text_input(
-        f"{i+1}교시 시작",
-        value=default_start_time,
-        key=f"start_{i}",
-        placeholder="예: 08:00"
-    )
+        # 시작 시간 입력
+        start_text = col1.text_input(
+            f"{i+1}교시 시작",
+            value=default_start_time,
+            key=f"start_{i}",
+            placeholder="예: 08:00"
+        )
 
-    # 종료 시간 입력
-    end_text = col2.text_input(
-        f"{i+1}교시 종료",
-        value=default_end_time,
-        key=f"end_{i}",
-        placeholder="예: 10:00"
-    )
+        # 종료 시간 입력
+        end_text = col2.text_input(
+            f"{i+1}교시 종료",
+            value=default_end_time,
+            key=f"end_{i}",
+            placeholder="예: 10:00"
+        )
 
-    # 유효성 체크 및 저장
-    try:
-        start_time = datetime.strptime(start_text.strip(), "%H:%M")
-        end_time = datetime.strptime(end_text.strip(), "%H:%M")
-        st.session_state["time_blocks"][i] = f"{start_time.strftime('%H:%M')} ~ {end_time.strftime('%H:%M')}"
-    except:
-        st.session_state["time_blocks"][i] = "시간 형식 오류"
+        # 유효성 체크 및 저장
+        try:
+            start_time = datetime.strptime(start_text.strip(), "%H:%M")
+            end_time = datetime.strptime(end_text.strip(), "%H:%M")
+            st.session_state["time_blocks"][i] = f"{start_time.strftime('%H:%M')} ~ {end_time.strftime('%H:%M')}"
+        except:
+            st.session_state["time_blocks"][i] = "시간 형식 오류"
 
 # 저장/불러오기
 if student_name:
