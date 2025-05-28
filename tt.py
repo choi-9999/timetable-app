@@ -224,21 +224,16 @@ st.sidebar.markdown(f"""
 st.sidebar.markdown("### 🧑‍💻 이름 입력")
 student_name = st.sidebar.text_input("👤 이름 (저장 및 불러오기용)", key="student_name")
 
-# 🔽 항상 표시되는 자동 슬롯 영역
+# 📥 최근 입력값 붙여넣기
 st.sidebar.markdown("---")
 st.sidebar.subheader("📥 최근 입력값 붙여넣기")
 
-# 기본 값
-subject = ""
-teacher = ""
+# 최근 입력값 박스를 위한 placeholder 생성
+recent_box = st.sidebar.empty()
 
-# autoslot 있을 경우 값 불러오기
-if "autoslot" in st.session_state:
-    auto = st.session_state["autoslot"]
-    subject = auto.get("subject", "")
-    teacher = auto.get("teacher", "")
-
-    st.sidebar.markdown(f"""
+# 렌더링 함수 분리
+def render_saved_box(subject, teacher):
+    return f"""
     <div style="
         background-color: #3b82f6;
         color: white;
@@ -252,34 +247,45 @@ if "autoslot" in st.session_state:
         font-weight: 500;
         margin-bottom: 16px;
     ">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <div>{subject}</div>
-            <div style="font-size: 0.85rem; opacity: 0.9;">{teacher}</div>
-        </div>
+        <div>{subject}</div>
+        <div style="font-size: 0.85rem; opacity: 0.9;">{teacher}</div>
     </div>
-    """, unsafe_allow_html=True)
-else:
-    st.sidebar.info("최근 입력값이 없습니다 😢")
+    """
 
-# 🔽 붙여넣을 위치 선택
+# 최초 렌더링 시 박스 표시
+if "copied_subject" in st.session_state and "copied_teacher" in st.session_state:
+    recent_box.markdown(render_saved_box(
+        st.session_state["copied_subject"],
+        st.session_state["copied_teacher"]
+    ), unsafe_allow_html=True)
+else:
+    recent_box.info("아직 저장된 값이 없습니다 😢")
+
+# 복사 대상 요일/교시 선택
 target_day = st.sidebar.selectbox("요일 선택", days)
 target_row = st.sidebar.selectbox("교시 선택", list(range(1, st.session_state["num_rows"] + 1)))
 
-# 🔽 저장 / 붙여넣기 버튼
+# 입력저장/붙여넣기 버튼
 col1, col2 = st.sidebar.columns(2)
 
 with col1:
     if st.button("💾 입력저장"):
-        st.session_state["autoslot"] = {
-            "subject": subject,
-            "teacher": teacher
-        }
+        key = f"{target_row - 1}_{target_day}"
+        subject_val = st.session_state.get(f"{key}_subject", "")
+        teacher_val = st.session_state.get(f"{key}_teacher", "")
+        st.session_state["copied_subject"] = subject_val
+        st.session_state["copied_teacher"] = teacher_val
+
+        # 🔄 박스 즉시 갱신
+        recent_box.markdown(render_saved_box(subject_val, teacher_val), unsafe_allow_html=True)
+        st.toast("✅ 저장 완료!", icon="💾")
 
 with col2:
-    if "autoslot" in st.session_state and st.button("📥 붙여넣기"):
+    if st.button("📥 붙여넣기"):
         key = f"{target_row - 1}_{target_day}"
-        st.session_state[f"{key}_subject"] = subject
-        st.session_state[f"{key}_teacher"] = teacher
+        st.session_state[f"{key}_subject"] = st.session_state.get("copied_subject", "")
+        st.session_state[f"{key}_teacher"] = st.session_state.get("copied_teacher", "")
+        st.toast("📌 붙여넣기 완료!", icon="📎")
 
 # 🔽 하단 구분선
 st.sidebar.markdown("---")
@@ -453,11 +459,6 @@ with left_col:
 
                 st.session_state["timetable"][key] = {"subject": subj, "teacher": teacher}
 
-                if subj and teacher :
-                    st.session_state["autoslot"] = {
-                        "subject": subj,
-                        "teacher": teacher,
-                    }
 # 통계
 탐구_과목 = ["물리학", "화학", "생명과학", "지구과학", "생활과윤리","윤리와사상","사회문화","한국지리","세계지리","동아시아사","세계사","정치와법","경제","한국사","제2외국어"]
 def 정규화(subject):
